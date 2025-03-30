@@ -1,0 +1,182 @@
+{% extends "layout.html" %}
+
+{% block title %}Lab In-Charge Dashboard - College Lab Inventory Management System{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Lab In-Charge Dashboard</h1>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="stats-icon">
+                    <i class="fas fa-cubes"></i>
+                </div>
+                <div class="stats-number">{{ equipment_count }}</div>
+                <div class="stats-title">Total Equipment</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="stats-icon text-success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stats-number">{{ available_count }}</div>
+                <div class="stats-title">Available</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="stats-icon text-warning">
+                    <i class="fas fa-wrench"></i>
+                </div>
+                <div class="stats-number">{{ maintenance_count }}</div>
+                <div class="stats-title">Under Maintenance</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="stats-icon text-info">
+                    <i class="fas fa-flask"></i>
+                </div>
+                <div class="stats-number">{{ laboratories|length }}</div>
+                <div class="stats-title">Laboratories</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Search Bar -->
+    <div class="row mb-4">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-body">
+                    <form action="{{ url_for('search') }}" method="post" class="search-form">
+                        {{ search_form.hidden_tag() }}
+                        <div class="input-group">
+                            {{ search_form.search_query(class="form-control search-input", placeholder="Search for equipment or components...") }}
+                            <button class="btn btn-primary search-button" type="submit">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0">Quick Actions</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <a href="{{ url_for('add_equipment') }}" class="btn btn-primary btn-lg w-100 mb-3">
+                                <i class="fas fa-plus-circle me-2"></i> Add New Equipment
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('manage_inventory') }}" class="btn btn-info btn-lg w-100 mb-3">
+                                <i class="fas fa-clipboard-list me-2"></i> Manage Inventory
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-secondary btn-lg w-100 mb-3" data-bs-toggle="modal" data-bs-target="#exportModal">
+                                <i class="fas fa-file-export me-2"></i> Export Inventory
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Labs Overview -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0">Laboratories Overview</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table class="table table-custom table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Laboratory Name</th>
+                                    <th class="text-center">Equipment Count</th>
+                                    <th class="text-center">Available</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lab in laboratories %}
+                                <tr class="clickable-row" data-href="{{ url_for('manage_inventory', lab_id=lab.id) }}">
+                                    <td>{{ lab.name }}</td>
+                                    <td class="text-center">{{ lab.equipment|length }}</td>
+                                    <td class="text-center">{{ lab.equipment|selectattr('status', 'equalto', 'Available')|list|length }}</td>
+                                    <td class="text-center">
+                                        {% set available_percentage = (lab.equipment|selectattr('status', 'equalto', 'Available')|list|length / lab.equipment|length * 100)|round if lab.equipment|length > 0 else 100 %}
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ available_percentage }}%" aria-valuenow="{{ available_percentage }}" aria-valuemin="0" aria-valuemax="100">{{ available_percentage }}%</div>
+                                        </div>
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('manage_inventory', lab_id=lab.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">Export Inventory</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Select a laboratory and export format:</p>
+                <form>
+                    <div class="mb-3">
+                        <label for="exportLab" class="form-label">Laboratory</label>
+                        <select class="form-select" id="exportLab">
+                            <option value="all">All Laboratories</option>
+                            {% for lab in laboratories %}
+                            <option value="{{ lab.id }}">{{ lab.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="exportFormat" class="form-label">Format</label>
+                        <select class="form-select" id="exportFormat">
+                            <option value="csv">CSV</option>
+                            <option value="pdf">PDF</option>
+                            <option value="excel">Excel</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary">Export</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

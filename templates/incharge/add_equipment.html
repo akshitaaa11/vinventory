@@ -1,0 +1,160 @@
+{% extends "layout.html" %}
+
+{% block title %}
+{% if equipment %}
+    Edit Equipment - College Lab Inventory Management System
+{% else %}
+    Add Equipment - College Lab Inventory Management System
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h2 class="mb-0">
+                        {% if equipment %}
+                            Edit Equipment: {{ equipment.name }}
+                        {% else %}
+                            Add New Equipment
+                        {% endif %}
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="equipment-form">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">{{ form.name.label }}</label>
+                                    {{ form.name(class="form-control", id="name", placeholder="Enter equipment name") }}
+                                    {% if form.name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.name.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="serial_number" class="form-label">{{ form.serial_number.label }}</label>
+                                    {{ form.serial_number(class="form-control", id="serial_number", placeholder="Enter serial number (optional)") }}
+                                    {% if form.serial_number.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.serial_number.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">{{ form.description.label }}</label>
+                            {{ form.description(class="form-control", id="description", rows="3", placeholder="Enter equipment description (optional)") }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="lab_id" class="form-label">{{ form.lab_id.label }}</label>
+                                    {{ form.lab_id(class="form-select", id="lab_id") }}
+                                    {% if form.lab_id.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.lab_id.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">{{ form.status.label }}</label>
+                                    {{ form.status(class="form-select", id="status") }}
+                                    {% if form.status.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.status.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="quantity" class="form-label">{{ form.quantity.label }}</label>
+                                    {{ form.quantity(class="form-control", id="quantity", type="number", min="1") }}
+                                    {% if form.quantity.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.quantity.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="purchase_date" class="form-label">{{ form.purchase_date.label }}</label>
+                                    {{ form.purchase_date(class="form-control", id="purchase_date", type="date") }}
+                                    {% if form.purchase_date.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.purchase_date.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="last_maintenance" class="form-label">{{ form.last_maintenance.label }}</label>
+                                    {{ form.last_maintenance(class="form-control", id="last_maintenance", type="date") }}
+                                    {% if form.last_maintenance.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.last_maintenance.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('manage_inventory') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                {% if equipment %}
+                                    Update Equipment
+                                {% else %}
+                                    Add Equipment
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
