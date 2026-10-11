@@ -1,0 +1,43 @@
+erDiagram
+    LABS ||--o{ LAB_MEMBERSHIPS : authorizes
+    USERS ||--o{ LAB_MEMBERSHIPS : receives
+    LABS ||--o{ STOCK_POLICIES : defines
+    USERS ||--o{ STOCK_POLICIES : creates
+    COMPONENT_MODELS ||--o{ LAB_STOCK : stocked_as
+    LABS ||--o{ LAB_STOCK : owns
+    STOCK_POLICIES ||--o{ LAB_STOCK : governs
+    LAB_STOCK ||--o| QUANTITY_BALANCES : has_when_quantity_tracked
+    LAB_STOCK ||--o{ PHYSICAL_UNITS : has_when_individual
+    LAB_STOCK ||--o{ INVENTORY_MOVEMENTS : records
+    PHYSICAL_UNITS o|--o{ INVENTORY_MOVEMENTS : identifies
+    USERS ||--o{ INVENTORY_MOVEMENTS : performs
+    LAB_STOCK ||--o{ STOCK_VERIFICATIONS : verifies
+    USERS ||--o{ STOCK_VERIFICATIONS : performs
+
+    LABS ||--o{ REQUESTS : receives
+    USERS ||--o{ REQUESTS : submits
+    REQUESTS ||--|{ REQUEST_LINES : contains
+    LAB_STOCK ||--o{ REQUEST_LINES : requests
+    REQUESTS o|--o| LOANS : fulfilled_by
+    LABS ||--o{ LOANS : owns
+    USERS ||--o{ LOANS : borrows
+    LOANS ||--o{ LOAN_PARTICIPANTS : includes_team
+    USERS ||--o{ LOAN_PARTICIPANTS : participates
+    LOANS ||--|{ LOAN_LINES : contains
+    LAB_STOCK ||--o{ LOAN_LINES : lends
+    LOAN_LINES ||--o{ LOAN_UNITS : allocates
+    PHYSICAL_UNITS ||--o{ LOAN_UNITS : loan_history
+    LOANS ||--o{ RETURN_RECORDS : receives
+    RETURN_RECORDS ||--|{ RETURN_LINES : contains
+    LOAN_LINES ||--o{ RETURN_LINES : returned_against
+    LOAN_UNITS o|--o| RETURN_LINES : closes_unit_allocation
+    LOAN_LINES o|--o{ INVENTORY_MOVEMENTS : explains_issue
+    RETURN_LINES o|--o{ INVENTORY_MOVEMENTS : explains_return
+    LOAN_LINES ||--o{ EXTENSION_REQUESTS : may_extend
+    USERS ||--o{ EXTENSION_REQUESTS : requests
+
+    LOAN_LINES ||--o{ NOTIFICATION_JOBS : schedules
+    USERS ||--o{ NOTIFICATION_JOBS : receives
+    NOTIFICATION_JOBS ||--o{ NOTIFICATION_ATTEMPTS : attempts
+    LABS o|--o{ AUDIT_EVENTS : scopes
+    USERS o|--o{ AUDIT_EVENTS : acts
