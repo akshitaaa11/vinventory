@@ -1,6 +1,7 @@
 erDiagram
     LABS ||--o{ LAB_MEMBERSHIPS : authorizes
     USERS ||--o{ LAB_MEMBERSHIPS : receives
+    USERS ||--o{ USER_SESSIONS : authenticates_with
     LABS ||--o{ STOCK_POLICIES : defines
     USERS ||--o{ STOCK_POLICIES : creates
     COMPONENT_MODELS ||--o{ LAB_STOCK : stocked_as

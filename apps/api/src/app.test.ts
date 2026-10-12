@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { buildApp } from "./app.js";
 
-const app = buildApp();
+const app = await buildApp({ logger: false });
 
 afterAll(async () => {
   await app.close();

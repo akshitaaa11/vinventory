@@ -21,13 +21,31 @@ Lab inventory and borrowing system, rebuilt from the lending-first plan.
 
 ```sh
 pnpm install
-pnpm typecheck
-pnpm test
+copy .env.development.example .env
+pnpm --filter @vinventory/db db:migrate
+pnpm verify
 pnpm dev
 ```
 
-Copy `.env.example` to `.env` and replace its sample values before starting
-services that require a database.
+Replace every sample secret and database URL before starting the API. The API
+expects VInventory to be registered as an OIDC client in VAuth with the exact
+redirect URI configured in `VAUTH_REDIRECT_URI`.
+
+Environment-specific templates are provided for development, test, and
+production. Never commit populated `.env` files.
+
+## Phase 1 foundation
+
+- PostgreSQL/Neon schema: 23 Drizzle tables with a generated initial migration.
+- Identity: VAuth authorization-code flow with PKCE S256, state, and nonce.
+- Sessions: opaque, signed browser cookies backed by hashed local sessions.
+- Authorization: app-owned account types and lab membership permissions,
+  enforced in API pre-handlers.
+- Verification: `pnpm verify` runs all type checks, tests, and production builds.
+
+See [`docs/authentication.md`](./docs/authentication.md) for the VAuth contract
+and [`docs/phase-1-pilot-checklist.md`](./docs/phase-1-pilot-checklist.md) for
+the incharge-owned operational inputs required before the real pilot begins.
 
 ## Delivery order
 

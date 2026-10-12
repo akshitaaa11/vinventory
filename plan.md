@@ -2,9 +2,9 @@
 
 Created: 8 October 2026
 
-Refined: 11 October 2026
+Refined: 12 October 2026
 
-Status: Requirements and technical direction documented; implementation and lab validation pending.
+Status: Phase 1 technical foundation implemented; pilot-lab inputs, live VAuth registration, and incharge validation pending.
 
 Delivery decision: Follow a lending-first MVP, then complete single-lab inventory, then expand to independently managed labs and shared discovery.
 
@@ -180,9 +180,15 @@ Dashboard functions:
 - [ ] Create a stable list of returnable models and unit IDs where needed.
 - [ ] Agree essential/project presets, default durations and staff permissions.
 - [ ] Confirm that loose consumables are outside the lending MVP and require no borrower or due date when introduced.
-- [ ] Review the actual VOSS VAuth repository and agree its supported integration contract.
-- [ ] Set up React/Vite frontend, TypeScript API, Neon and Drizzle schema/migrations.
-- [ ] Establish lab IDs, permissions, audit events and separate development/test/production configuration.
+- [x] Review the actual VOSS VAuth repository and agree its supported integration contract.
+- [x] Set up React/Vite frontend, TypeScript API, Neon and Drizzle schema/migrations.
+- [x] Establish lab IDs, permissions, audit events and separate development/test/production configuration.
+
+Technical foundation verified on 12 October 2026. The remaining unchecked
+items require the pilot lab's actual register, inventory, staff identities, and
+incharge approval; use `docs/phase-1-pilot-checklist.md` to capture them. A
+live VAuth demonstration additionally requires VInventory client registration
+by the VAuth administrator.
 
 **Deliverables:** Agreed workflow, initial item records, schema and project skeleton.
 

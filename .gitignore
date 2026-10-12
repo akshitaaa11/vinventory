@@ -4,11 +4,15 @@ coverage/
 .env
 .env.*
 !.env.example
+!.env.development.example
+!.env.test.example
+!.env.production.example
 *.log
 *.tsbuildinfo
 .DS_Store
 .idea/
 .vscode/
 .venv/
+.vauth-reference/
 __pycache__/
 *.py[cod]

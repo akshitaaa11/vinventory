@@ -1,6 +1,6 @@
 # VInventory database schema
 
-Status: proposed schema for review before Drizzle migrations
+Status: implemented in Drizzle with an initial generated migration
 
 Scope: supports the lending MVP (Phases 1–4), complete single-lab inventory
 (Phase 5), and later independent multi-lab operation (Phases 6–7). Optional
@@ -58,7 +58,7 @@ VAuth-internal credential is stored here.
 | `auth_provider` | `text` | Required |
 | `auth_subject` | `text` | Required; stable provider identifier |
 | `display_name` | `text` | Required |
-| `email` | `citext` | Optional; not used as identity |
+| `email` | `text` | Optional; not used as identity |
 | `account_type` | `account_type` | Required |
 | `is_active` | `boolean` | Required, default `true` |
 | `created_at` | `timestamptz` | Required |
@@ -68,6 +68,27 @@ Constraints and indexes:
 
 - Unique: (`auth_provider`, `auth_subject`).
 - Index: (`account_type`, `is_active`).
+
+### `user_sessions`
+
+VInventory-owned browser sessions. Only a SHA-256 hash of the random opaque
+session token is stored; the browser receives the token in a signed,
+HTTP-only cookie.
+
+| Column | Type | Rules |
+|---|---|---|
+| `id` | `uuid` | Primary key |
+| `user_id` | `uuid` | FK `users.id`, required |
+| `token_hash` | `text` | Required, unique |
+| `expires_at` | `timestamptz` | Required |
+| `last_seen_at` | `timestamptz` | Required |
+| `revoked_at` | `timestamptz` | Optional |
+| `user_agent` | `text` | Optional |
+| `ip_hash` | `text` | Optional |
+| `created_at` | `timestamptz` | Required |
+
+The API accepts only unexpired, unrevoked sessions belonging to an active
+local user. Logout revokes the server-side row before clearing the cookie.
 
 ### `labs`
 
@@ -558,6 +579,7 @@ The editable Mermaid source is in [`er-diagram.mmd`](./er-diagram.mmd).
 erDiagram
     LABS ||--o{ LAB_MEMBERSHIPS : authorizes
     USERS ||--o{ LAB_MEMBERSHIPS : receives
+    USERS ||--o{ USER_SESSIONS : authenticates_with
     LABS ||--o{ STOCK_POLICIES : defines
     USERS ||--o{ STOCK_POLICIES : creates
     COMPONENT_MODELS ||--o{ LAB_STOCK : stocked_as
@@ -604,7 +626,6 @@ erDiagram
 
 The schema deliberately leaves these as configuration or service-level choices:
 
-- The exact VAuth provider/subject fields after reviewing its supported contract.
 - Which reminder channels are available.
 - Whether the MVP begins with student requests or direct staff checkout.
 - The pilot lab's default policy durations and delegated permissions.
