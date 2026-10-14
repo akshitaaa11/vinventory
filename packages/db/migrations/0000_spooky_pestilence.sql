@@ -360,6 +360,7 @@ ALTER TABLE "lab_memberships" ADD CONSTRAINT "lab_memberships_lab_id_labs_id_fk"
 ALTER TABLE "lab_memberships" ADD CONSTRAINT "lab_memberships_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "lab_stock" ADD CONSTRAINT "lab_stock_lab_id_labs_id_fk" FOREIGN KEY ("lab_id") REFERENCES "public"."labs"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "lab_stock" ADD CONSTRAINT "lab_stock_component_model_id_component_models_id_fk" FOREIGN KEY ("component_model_id") REFERENCES "public"."component_models"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "stock_policies_id_lab_unique" ON "stock_policies" USING btree ("id","lab_id");--> statement-breakpoint
 ALTER TABLE "lab_stock" ADD CONSTRAINT "lab_stock_policy_same_lab_fk" FOREIGN KEY ("policy_id","lab_id") REFERENCES "public"."stock_policies"("id","lab_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "loan_lines" ADD CONSTRAINT "loan_lines_loan_id_loans_id_fk" FOREIGN KEY ("loan_id") REFERENCES "public"."loans"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "loan_lines" ADD CONSTRAINT "loan_lines_stock_id_lab_stock_id_fk" FOREIGN KEY ("stock_id") REFERENCES "public"."lab_stock"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -427,7 +428,6 @@ CREATE UNIQUE INDEX "return_lines_loan_unit_unique" ON "return_lines" USING btre
 CREATE UNIQUE INDEX "return_records_idempotency_key_unique" ON "return_records" USING btree ("idempotency_key");--> statement-breakpoint
 CREATE INDEX "return_records_loan_received_idx" ON "return_records" USING btree ("loan_id","received_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "stock_policies_lab_name_unique" ON "stock_policies" USING btree ("lab_id","name");--> statement-breakpoint
-CREATE UNIQUE INDEX "stock_policies_id_lab_unique" ON "stock_policies" USING btree ("id","lab_id");--> statement-breakpoint
 CREATE INDEX "stock_verifications_stock_verified_idx" ON "stock_verifications" USING btree ("stock_id","verified_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "user_sessions_token_hash_unique" ON "user_sessions" USING btree ("token_hash");--> statement-breakpoint
 CREATE INDEX "user_sessions_user_active_idx" ON "user_sessions" USING btree ("user_id","expires_at","revoked_at");--> statement-breakpoint

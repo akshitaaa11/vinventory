@@ -49,6 +49,12 @@ the incharge-owned operational inputs required before the real pilot begins.
 
 ## Delivery order
 
+The app includes a CSV/Excel (`.csv` / `.xlsx`) returnable-item import screen
+with a downloadable CSV template, row preview, validation, and transactional
+imports. Imported stock awaits physical verification. See
+[`docs/inventory-import.md`](./docs/inventory-import.md) for setup and format.
+Real pilot data collection is deferred; development can continue meanwhile.
+
 1. Confirm pilot-lab workflow and VAuth integration.
 2. Implement returnable-equipment checkout and confirmed returns.
 3. Add extensions and reliable reminder processing.

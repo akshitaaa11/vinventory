@@ -4,9 +4,12 @@ import { healthResponseSchema } from "@vinventory/contracts";
 
 import { registerAuthentication } from "./auth/plugin.js";
 import type { AuthRepository, OidcClient } from "./auth/types.js";
+import { registerInventoryImports } from "./inventory/routes.js";
+import type { InventoryRepository } from "./inventory/repository.js";
 
 type BuildAppOptions = {
   logger?: boolean;
+  inventory?: InventoryRepository;
   auth?: {
     repository: AuthRepository;
     oidcClient: OidcClient;
@@ -25,6 +28,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
 
   if (options.auth) {
     await registerAuthentication(app, options.auth);
+    if (options.inventory) await registerInventoryImports(app, options.inventory, options.auth.webOrigin);
 
     app.get(
       "/api/me",

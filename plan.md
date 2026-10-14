@@ -2,9 +2,9 @@
 
 Created: 8 October 2026
 
-Refined: 12 October 2026
+Refined: 15 October 2026
 
-Status: Phase 1 technical foundation implemented; pilot-lab inputs, live VAuth registration, and incharge validation pending.
+Status: Phase 1 technical foundation implemented; M201 VLSI Lab and Ajit Ghadge selected, existing presets and permissions accepted. Real item/loan data collection deferred at the project owner's request; CSV/Excel item import added for later intake. Remaining workflow details, live VAuth registration, and incharge sign-off pending.
 
 Delivery decision: Follow a lending-first MVP, then complete single-lab inventory, then expand to independently managed labs and shared discovery.
 
@@ -175,20 +175,34 @@ Dashboard functions:
 
 **Goal:** Agree on the smallest useful release and preserve expansion options.
 
-- [ ] Select one lab and its responsible incharge.
-- [ ] Observe register-based issue/return activity and identify existing outstanding loans.
-- [ ] Create a stable list of returnable models and unit IDs where needed.
-- [ ] Agree essential/project presets, default durations and staff permissions.
-- [ ] Confirm that loose consumables are outside the lending MVP and require no borrower or due date when introduced.
+- [x] Select one lab and its responsible incharge: M201 VLSI Lab (M201), Ajit Ghadge.
+- [ ] Observe register-based issue/return activity and identify existing outstanding loans. Register format recorded; actual loan data collection deferred on 15 October 2026.
+- [ ] Create a stable list of returnable models and unit IDs where needed. Actual data collection deferred on 15 October 2026.
+- [x] Add CSV/Excel (`.csv` / `.xlsx`) item import with preview, validation, lab permissions, and transactional persistence for later intake.
+- [x] Agree essential/project presets, default durations and staff permissions: existing defaults accepted by the project owner on 15 October 2026.
+- [x] Confirm that loose consumables are outside the lending MVP and require no borrower or due date when introduced.
 - [x] Review the actual VOSS VAuth repository and agree its supported integration contract.
 - [x] Set up React/Vite frontend, TypeScript API, Neon and Drizzle schema/migrations.
 - [x] Establish lab IDs, permissions, audit events and separate development/test/production configuration.
 
-Technical foundation verified on 12 October 2026. The remaining unchecked
-items require the pilot lab's actual register, inventory, staff identities, and
-incharge approval; use `docs/phase-1-pilot-checklist.md` to capture them. A
-live VAuth demonstration additionally requires VInventory client registration
-by the VAuth administrator.
+Technical foundation verified on 12 October 2026. Pilot ownership, the observed
+register columns, the four-column item intake format, and acceptance of the
+existing presets/permissions were recorded on 15 October 2026 in
+`docs/phase-1-pilot-checklist.md`. Return date is confirmed as the actual date
+returned; the pilot register adds a separate due date for the agreed deadline.
+The register and outstanding-loan intake also include the borrower's roll
+number alongside their name; preserve roll numbers as text.
+Actual item rows, stable unit IDs where
+needed, outstanding loans, remaining workflow details, the pilot start date,
+and the incharge's VAuth identity and formal sign-off remain pending. A live
+VAuth demonstration additionally requires VInventory client registration by
+the VAuth administrator.
+
+Data collection is deferred, not an implementation blocker. The import workflow
+accepts the agreed four columns plus asset tags for individually tracked units.
+Imported quantities and units start in `awaiting_testing`; they do not establish
+verified available stock or complete the operational Phase 1 exit criteria.
+See `docs/inventory-import.md` for format, limits, and setup requirements.
 
 **Deliverables:** Agreed workflow, initial item records, schema and project skeleton.
 
@@ -486,4 +500,4 @@ Technical references:
 - Drizzle transactions: https://orm.drizzle.team/docs/transactions
 - shadcn/ui with Vite: https://ui.shadcn.com/docs/installation/vite
 
-Immediate next action: Confirm Phase 1 workflow with the pilot incharge and review VAuth's actual integration contract, then implement the lending MVP.
+Immediate next action: Continue implementing the lending MVP while real data collection is deferred. Complete live VAuth registration/verification and remaining workflow decisions in parallel with development; populate item/loan records and obtain incharge sign-off before the live pilot.

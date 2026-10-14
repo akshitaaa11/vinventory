@@ -13,6 +13,6 @@ export function createDatabase(connectionString: string) {
 }
 
 export * from "./schema/index.js";
-export { and, eq, gt, isNull } from "drizzle-orm";
+export { and, eq, gt, isNull, inArray, or, sql } from "drizzle-orm";
 
 export type Database = ReturnType<typeof createDatabase>["db"];
