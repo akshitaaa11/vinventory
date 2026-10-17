@@ -10,11 +10,13 @@ import type {
 const identityClaimsSchema = z.object({
   sub: z.string().min(1),
   email: z.string().email(),
-  name: z.string().trim().min(1).optional(),
+  email_verified: z.literal(true),
+  name: z.string().trim().nullish(),
 });
 
 export type VAuthClientConfig = {
   issuer: string;
+  discoveryUrl: string;
   clientId: string;
   clientSecret: string;
   redirectUri: string;
@@ -30,17 +32,29 @@ export class VAuthOidcClient implements OidcClient {
   }
 
   async #getConfiguration(): Promise<oidc.Configuration> {
-    this.#configuration ??= oidc.discovery(
-      new URL(this.#settings.issuer),
-      this.#settings.clientId,
-      this.#settings.clientSecret,
-      oidc.ClientSecretPost(this.#settings.clientSecret),
-      this.#settings.allowInsecureRequests
-        ? { execute: [oidc.allowInsecureRequests] }
-        : undefined,
-    );
-
+    this.#configuration ??= this.#discover().catch((error: unknown) => {
+      this.#configuration = undefined;
+      throw error;
+    });
     return this.#configuration;
+  }
+
+  async #discover(): Promise<oidc.Configuration> {
+    const configuration = await oidc.discovery(
+      new URL(this.#settings.discoveryUrl),
+      this.#settings.clientId,
+      { client_secret: this.#settings.clientSecret, id_token_signed_response_alg: "EdDSA" },
+      oidc.ClientSecretPost(this.#settings.clientSecret),
+      { timeout: 10, execute: [
+        oidc.enableNonRepudiationChecks,
+        ...(this.#settings.allowInsecureRequests ? [oidc.allowInsecureRequests] : []),
+      ] },
+    );
+    // Explicit discovery URLs bypass openid-client's automatic issuer comparison.
+    if (configuration.serverMetadata().issuer !== this.#settings.issuer) {
+      throw new Error("VAuth discovery issuer does not match the configured issuer");
+    }
+    return configuration;
   }
 
   async createAuthorizationRequest(returnTo: string): Promise<{
@@ -95,7 +109,7 @@ export class VAuthOidcClient implements OidcClient {
     return {
       provider: "vauth",
       subject: claims.sub,
-      displayName: claims.name ?? claims.email.split("@")[0] ?? claims.email,
+      displayName: claims.name || claims.email.split("@")[0] || claims.email,
       email: claims.email.toLowerCase(),
     };
   }

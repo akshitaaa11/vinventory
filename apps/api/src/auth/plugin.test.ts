@@ -98,8 +98,8 @@ async function createAuthenticatedApp(permissionGranted = true) {
       cookieSecret: "test-cookie-secret-that-is-at-least-32-characters",
       secureCookies: false,
       sessionTtlHours: 12,
-      webOrigin: "http://web.test:5173",
-      callbackUrl: "http://api.test:3000/auth/callback",
+      webOrigin: "http://localhost:5173",
+      callbackUrl: "http://localhost:5173/api/auth/oauth2/callback/voss",
     },
   });
   apps.push(app);
@@ -107,6 +107,36 @@ async function createAuthenticatedApp(permissionGranted = true) {
 }
 
 describe("authentication boundary", () => {
+  it("returns a failed provider connection to the landing page with a readable error state", async () => {
+    const { app, oidcClient } = await createAuthenticatedApp();
+    vi.mocked(oidcClient.createAuthorizationRequest).mockRejectedValueOnce(new Error("Provider unavailable"));
+    const response = await app.inject({ method: "GET", url: "/auth/login?returnTo=%2Flabs" });
+    expect(response.statusCode).toBe(302);
+    expect(response.headers.location).toBe("http://localhost:5173/?authError=provider_unavailable");
+    expect(response.headers["set-cookie"]).toBeUndefined();
+  });
+
+  it("preserves the labs destination through hosted login and rejects cross-origin logout", async () => {
+    const { app, repository } = await createAuthenticatedApp();
+    const login = await app.inject({ method: "GET", url: "/auth/login?returnTo=%2Flabs" });
+    const callback = await app.inject({ method: "GET", url: "/api/auth/oauth2/callback/voss?code=test-code&state=test-state",
+      headers: { cookie: cookieFrom(login.headers, "vinventory_oidc") } });
+    expect(callback.headers.location).toBe("http://localhost:5173/labs");
+    const logout = await app.inject({ method: "POST", url: "/auth/logout",
+      headers: { origin: "https://untrusted.example", cookie: cookieFrom(callback.headers, "vinventory_session") } });
+    expect(logout.statusCode).toBe(403);
+    expect(repository.revokeSession).not.toHaveBeenCalled();
+  });
+
+  it("requires a signed login transaction on the registered callback", async () => {
+    const { app, repository } = await createAuthenticatedApp();
+    const response = await app.inject({ method: "GET", url: "/api/auth/oauth2/callback/voss?code=unsolicited&state=invalid" });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({ error: "invalid_login_state" });
+    expect(repository.createSession).not.toHaveBeenCalled();
+    expect((await app.inject({ method: "GET", url: "/auth/callback" })).statusCode).toBe(404);
+  });
+
   it("rejects a protected route without a local session", async () => {
     const { app } = await createAuthenticatedApp();
 
@@ -114,6 +144,19 @@ describe("authentication boundary", () => {
 
     expect(response.statusCode).toBe(401);
     expect(response.json()).toEqual({ error: "authentication_required" });
+  });
+
+  it("does not create an identity or session when token verification fails", async () => {
+    const { app, oidcClient, repository } = await createAuthenticatedApp();
+    vi.mocked(oidcClient.exchangeCallback).mockRejectedValueOnce(new Error("Invalid signature"));
+    const login = await app.inject({ method: "GET", url: "/auth/login" });
+    const response = await app.inject({ method: "GET", url: "/api/auth/oauth2/callback/voss?code=bad&state=test-state",
+      headers: { cookie: cookieFrom(login.headers, "vinventory_oidc") } });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({ error: "invalid_auth_callback" });
+    expect(repository.upsertIdentity).not.toHaveBeenCalled();
+    expect(repository.createSession).not.toHaveBeenCalled();
+    expect(response.headers["set-cookie"]).toEqual(expect.stringContaining("vinventory_oidc=;"));
   });
 
   it("completes OIDC login and creates an app-owned session", async () => {
@@ -129,14 +172,14 @@ describe("authentication boundary", () => {
     const loginCookie = cookieFrom(login.headers, "vinventory_oidc");
     const callback = await app.inject({
       method: "GET",
-      url: "/auth/callback?code=test-code&state=test-state",
+      url: "/api/auth/oauth2/callback/voss?code=test-code&state=test-state",
       headers: { cookie: loginCookie },
     });
 
     expect(callback.statusCode).toBe(302);
-    expect(callback.headers.location).toBe("http://web.test:5173/loans");
+    expect(callback.headers.location).toBe("http://localhost:5173/loans");
     expect(oidcClient.exchangeCallback).toHaveBeenCalledWith(
-      new URL("http://api.test:3000/auth/callback?code=test-code&state=test-state"),
+      new URL("http://localhost:5173/api/auth/oauth2/callback/voss?code=test-code&state=test-state"),
       expect.objectContaining({ state: "test-state", nonce: "test-nonce" }),
     );
     expect(repository.upsertIdentity).toHaveBeenCalledWith(
@@ -186,7 +229,7 @@ describe("authentication boundary", () => {
     const login = await app.inject({ method: "GET", url: "/auth/login" });
     const callback = await app.inject({
       method: "GET",
-      url: "/auth/callback?code=test-code&state=test-state",
+      url: "/api/auth/oauth2/callback/voss?code=test-code&state=test-state",
       headers: { cookie: cookieFrom(login.headers, "vinventory_oidc") },
     });
     const sessionCookie = cookieFrom(callback.headers, "vinventory_session");

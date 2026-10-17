@@ -61,12 +61,22 @@ are never overwritten. File bytes are not stored on disk or in the database.
 The database needs an active lab, the staff member's authorized lab membership,
 and an active returnable borrowing policy. Configure these through the trusted
 administration process; the importer does not grant permissions or create
-policies. Live VAuth client registration is still required. A lab with no
-eligible policy cannot commit imports.
+policies. Hosted owner login, Neon persistence and repeat login are verified.
+First-admin and repeatable
+lab/policy setup tools are planned in [authentication](./authentication.md).
+A lab with no eligible policy cannot commit imports.
+
+The public homepage introduces VInventory. After signing in, `/labs` lists active
+labs from the database. Open a lab, then choose **Import equipment records**;
+that action is shown only for stock managers and opens `/labs/:labId/import`.
+Server permission checks still enforce all preview and import operations.
 
 The browser uses same-origin `/api` and `/auth` routes. Vite proxies both to
-`http://127.0.0.1:3000` during development; open the app at
-`http://127.0.0.1:5173` to match the example VAuth callback/cookie host.
+`http://127.0.0.1:3000` during development. The newly registered browser origin
+is `http://localhost:5173`, with callback
+`http://localhost:5173/api/auth/oauth2/callback/voss`. The callback and environment
+examples are aligned; live sign-in against the configured Neon database is verified.
+Do not substitute the proxy's internal `127.0.0.1` address for the registered browser hostname.
 Production must route these paths to the API behind the same origin as the web
 app. Set `WEB_ORIGIN` to that browser origin. This screen does not use the old
 `VITE_API_BASE_URL` setting. No new schema migration is needed for this feature.

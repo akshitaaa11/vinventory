@@ -2,6 +2,13 @@
 
 Status: implemented in Drizzle with an initial generated migration
 
+Planning update, 17 October 2026: this document describes the **current schema**.
+Phase 1 now requires a reviewed migration for explicit unassigned identities
+(replacing the automatic `student` default), plus VInventory-owned borrower
+roll-number/profile binding. These changes are not implemented. See
+[authentication](./authentication.md) and [plan](../plan.md); preserve existing
+user IDs and operational references when implementing them.
+
 Scope: supports the lending MVP (Phases 1–4), complete single-lab inventory
 (Phase 5), and later independent multi-lab operation (Phases 6–7). Optional
 Phase 8 workflows such as transfers, kits, and reservations are intentionally

@@ -26,17 +26,28 @@ async function fixture(allowed = true) {
     conflicts: vi.fn(async () => []),
     commit: vi.fn(async () => ({ imported: 1, units: 2, status: "awaiting_testing" as const })),
   };
-  const app = await buildApp({ logger: false, inventory: repository, auth: {
+  const directory = { listActiveLabs: vi.fn(async () => [{ id: labId, code: "M201", name: "VLSI Lab", location: "M201", canManageStock: allowed }]) };
+  const app = await buildApp({ logger: false, inventory: repository, labs: directory, auth: {
     repository: auth, oidcClient: oidc, cookieSecret: "test-secret-with-at-least-32-characters",
-    secureCookies: false, sessionTtlHours: 12, webOrigin: "http://127.0.0.1:5173", callbackUrl: "http://127.0.0.1:3000/auth/callback",
+    secureCookies: false, sessionTtlHours: 12, webOrigin: "http://127.0.0.1:5173", callbackUrl: "http://localhost:5173/api/auth/oauth2/callback/voss",
   } });
   apps.push(app);
   await app.ready();
   const cookie = `vinventory_session=${encodeURIComponent(app.signCookie("test-session"))}`;
-  return { app, repository, auth, cookie };
+  return { app, repository, auth, cookie, directory };
 }
 
 describe("inventory import routes", () => {
+  it("requires a session for the lab directory but does not require stock-management access", async () => {
+    const { app, cookie, directory } = await fixture(false);
+    expect((await app.inject({ method: "GET", url: "/api/labs" })).statusCode).toBe(401);
+    expect(directory.listActiveLabs).not.toHaveBeenCalled();
+    const response = await app.inject({ method: "GET", url: "/api/labs", headers: { cookie } });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ labs: [{ id: labId, code: "M201", name: "VLSI Lab", location: "M201", canManageStock: false }] });
+    expect(directory.listActiveLabs).toHaveBeenCalledWith(user);
+  });
+
   it("requires authentication and lab stock permission for preview and import", async () => {
     const { app, cookie, auth, repository } = await fixture(false);
     for (const suffix of ["/preview", ""]) {

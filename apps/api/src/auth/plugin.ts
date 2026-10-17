@@ -2,12 +2,14 @@ import cookie from "@fastify/cookie";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
 import { hashIp, hashToken, randomToken } from "./crypto.js";
+import { oauthCallbackPath } from "./constants.js";
 import type {
   AuthRepository,
   CurrentUser,
   LabPermission,
   OidcClient,
   OidcTransaction,
+  VerifiedIdentity,
 } from "./types.js";
 
 declare module "fastify" {
@@ -90,7 +92,12 @@ export async function registerAuthentication(
 
   app.get<{ Querystring: { returnTo?: string } }>("/auth/login", async (request, reply) => {
     const returnTo = safeReturnPath(request.query.returnTo);
-    const authorization = await options.oidcClient.createAuthorizationRequest(returnTo);
+    let authorization: Awaited<ReturnType<OidcClient["createAuthorizationRequest"]>>;
+    try {
+      authorization = await options.oidcClient.createAuthorizationRequest(returnTo);
+    } catch {
+      return reply.redirect(new URL("/?authError=provider_unavailable", options.webOrigin).href);
+    }
 
     reply.setCookie(loginCookie, encodeTransaction(authorization.transaction), {
       ...baseCookie,
@@ -101,7 +108,7 @@ export async function registerAuthentication(
     return reply.redirect(authorization.authorizationUrl);
   });
 
-  app.get("/auth/callback", async (request, reply) => {
+  app.get(oauthCallbackPath, async (request, reply) => {
     const rawCookie = request.cookies[loginCookie];
     const unsigned = rawCookie ? request.unsignCookie(rawCookie) : null;
 
@@ -118,10 +125,13 @@ export async function registerAuthentication(
 
     const callbackUrl = new URL(options.callbackUrl);
     callbackUrl.search = new URL(request.url, "http://localhost").search;
-    const identity = await options.oidcClient.exchangeCallback(
-      callbackUrl,
-      transaction,
-    );
+    reply.clearCookie(loginCookie, baseCookie);
+    let identity: VerifiedIdentity;
+    try {
+      identity = await options.oidcClient.exchangeCallback(callbackUrl, transaction);
+    } catch {
+      return reply.code(400).send({ error: "invalid_auth_callback" });
+    }
     const user = await options.repository.upsertIdentity(identity);
     const sessionToken = randomToken();
     const expiresAt = new Date(
@@ -136,7 +146,6 @@ export async function registerAuthentication(
       ipHash: hashIp(request.ip),
     });
 
-    reply.clearCookie(loginCookie, baseCookie);
     reply.setCookie(sessionCookie, sessionToken, {
       ...baseCookie,
       expires: expiresAt,
@@ -147,6 +156,9 @@ export async function registerAuthentication(
   });
 
   app.post("/auth/logout", async (request, reply) => {
+    if (request.headers.origin && request.headers.origin !== options.webOrigin) {
+      return reply.code(403).send({ error: "request_origin_not_allowed" });
+    }
     const rawCookie = request.cookies[sessionCookie];
     const unsigned = rawCookie ? request.unsignCookie(rawCookie) : null;
 

@@ -4,11 +4,13 @@ import { VAuthOidcClient } from "./auth/oidc.js";
 import { loadConfig } from "./config.js";
 import { createDatabase } from "@vinventory/db";
 import { DrizzleInventoryRepository } from "./inventory/repository.js";
+import { DrizzleLabsRepository } from "./labs/repository.js";
 
 const config = loadConfig();
 const database = createDatabase(config.databaseUrl);
 const app = await buildApp({
   inventory: new DrizzleInventoryRepository(database.db),
+  labs: new DrizzleLabsRepository(database.db),
   auth: {
     repository: new DrizzleAuthRepository(database.db),
     oidcClient: new VAuthOidcClient(config.vAuth),

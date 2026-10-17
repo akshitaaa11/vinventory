@@ -2,9 +2,9 @@
 
 Created: 8 October 2026
 
-Refined: 15 October 2026
+Refined: 17 October 2026
 
-Status: Phase 1 technical foundation implemented; M201 VLSI Lab and Ajit Ghadge selected, existing presets and permissions accepted. Real item/loan data collection deferred at the project owner's request; CSV/Excel item import added for later intake. Remaining workflow details, live VAuth registration, and incharge sign-off pending.
+Status: Technical foundation and CSV/Excel item import implemented. M201 VLSI Lab, Ajit Ghadge, and lending defaults confirmed by the project owner. Hosted VAuth, registered localhost callback, environment loading and token verification are aligned. Separate Neon `neondb` setup/migrations, live owner login, `/api/me` and repeat identity preservation were verified on 17 October 2026. Next: implement unassigned-user onboarding and first-system-admin setup. Actual item/loan collection remains deferred; operational sign-off is pending.
 
 Delivery decision: Follow a lending-first MVP, then complete single-lab inventory, then expand to independently managed labs and shared discovery.
 
@@ -36,6 +36,15 @@ The complete single-lab scope includes components, electronic boards, tools, con
 | Reliable returns | Staff confirm physical receipt and condition |
 | Multi-lab expansion | Separate ownership, balances, permissions and loan records |
 | Shared inventory | Search across labs while each incharge controls their own stock |
+| Independent owner testing | Owner can bootstrap their own system-admin account and test other roles using isolated fixtures |
+| Deferred data intake | Import returnable items later from CSV/Excel; no fabricated pilot records |
+| Borrower register | Name, roll number, item/model, issued date, due date, actual return date, purpose and verifier |
+
+Confirmed pilot: **M201 VLSI Lab**, code **M201**, location **201 M-block VIT**.
+**Ajit Ghadge** is the responsible incharge and checkout/return operator.
+The pilot start date and his actual VAuth identity are still required before
+live operation. The project owner is the intended first system administrator;
+their exact verified account must be selected during setup.
 
 ## 3. Categories and configurable policies
 
@@ -48,6 +57,10 @@ Categories are presets, not universal rules fixed by component name.
 | Project / longer-term loan | Raspberry Pi 5, Jetson, FPGA board | Yes | Yes | More than one week; e.g. 14 days |
 
 Durations are editable defaults. The agreed due date is set at issue. Battery treatment depends on whether it is reusable or expendable and on the lab's policy.
+
+For M201, the accepted defaults are **4 days for Essential** and **14 days for
+Project**. Both require approval and allow extensions; Project also requires
+purpose. Loose consumables remain outside the lending MVP.
 
 ### Incharge settings per lab stock entry
 
@@ -98,12 +111,52 @@ Store inventory movements so balances and historical changes can be explained. P
 
 | Role | Responsibilities and access |
 |---|---|
+| Unassigned identity (planned) | May authenticate, view access-pending status and sign out; no operational access until explicitly linked/authorized |
 | Student | Browse permitted catalogue, request equipment, see own loans and request extensions |
 | Lab incharge | Manage assigned lab stock and policies, approve requests, confirm issue/return, view borrowers and reports |
 | Authorized lab staff | Delegated operations within assigned labs, according to permissions |
-| System administrator | Manage accounts, lab onboarding and role assignment; privileged actions remain logged |
+| System administrator (`system_admin`) | Application-wide administration, lab onboarding, policy/role assignment and cross-lab operations; privileged actions must be logged |
 
 Students do not see other borrowers' personal details. Incharges manage only authorized labs. Inventory ownership and permissions must be enforced on the server, not merely hidden in the interface.
+
+**Implementation status:** The backend already recognizes `system_admin` and
+grants it the existing lab permissions. First-admin setup, account/lab management
+tools, and an admin dashboard are not implemented. New identities currently
+default to `student`; replacing that default with an explicit unassigned state
+is a Phase 1 task, not completed behavior. Lab incharge is a lab-membership role,
+not a role supplied by VAuth.
+
+### First administrator and owner testing
+
+- Build a trusted server-side setup command that promotes one explicitly
+  selected, already authenticated VAuth identity to `system_admin`. Display the
+  selected local user/subject and verified email for the operator to review.
+- Never promote the first visitor automatically or trust a browser-supplied
+  email, roll number or role. Make the command repeat-safe and audit the grant.
+  A different initial target must not be silently promoted on a repeated run.
+- Provide a repeatable setup path for M201 and its accepted policies so the
+  owner can exercise inventory imports without asking the incharge to log in.
+  Link Ajit Ghadge's actual account before live lab operation; do not impersonate
+  him for testing. Keep test inventory separate from real pilot records.
+- The full admin dashboard can follow the initial setup tools. Later role
+  management must be restricted to system admins, audited, and prevent accidental
+  removal of the last active administrator.
+- Add isolated seeded identities for admin, incharge, restricted staff, student,
+  and unassigned scenarios. Any local identity switcher must require
+  `VINVENTORY_DEV_AUTH=1`, refuse production at runtime, fail production builds
+  when enabled, and resolve roles from the real application database. This is
+  planned tooling; it does not replace a real hosted-VAuth login test.
+
+### Borrower identity and roll numbers
+
+VAuth supplies a stable subject and verified email, not roll numbers or roles.
+Keep borrower roll numbers as text in VInventory-owned records, preserving
+letters and leading zeros. Staff must establish the borrower-record mapping;
+a typed name or roll number cannot claim an existing person's record. Use the
+provider-verified email to match an approved local record, then retain the stable
+VAuth subject binding. Refuse and log attempts to rebind an already-linked record
+to a different identity. Retry safe linking on later sign-ins if records were
+not available earlier; failure to link leaves the user unassigned.
 
 ## 6. Core workflows
 
@@ -119,8 +172,8 @@ Open bins may use batch consumption records and periodic counts. When withdrawal
 ### B. Essential tool checkout
 
 1. Student requests a tool, or staff start direct checkout at handover.
-2. Staff verify student identity and availability.
-3. Staff select actual units/quantity and agree a due date, using the 3–4 day default where configured.
+2. Staff verify the student's local identity, name and roll number, and check item eligibility for issue.
+3. Staff select actual units/quantity and agree a due date, using M201's four-day Essential default where configured.
 4. Staff confirm physical issue and starting condition.
 5. System creates the loan and marks stock borrowed.
 6. Staff confirm physical return and condition; working items become available.
@@ -137,6 +190,8 @@ Use the essential workflow with project purpose and a longer due date. For group
 - Damaged returns become damaged or under repair.
 - Lost items retain borrower and incident history; write-off is a separate staff action.
 - Expected return dates are commitments, not guarantees of future availability.
+- Due date is the agreed deadline. Actual return date is recorded only upon
+  confirmed receipt; preserve separate dates and quantities for partial returns.
 
 ### E. Requests versus loans
 
@@ -173,48 +228,56 @@ Dashboard functions:
 
 ### Phase 1 — Confirm the pilot workflow and technical foundations
 
-**Goal:** Agree on the smallest useful release and preserve expansion options.
+**Goal:** Make local development independently usable with hosted VAuth and
+explicit application permissions, while keeping live-pilot requirements visible.
 
-- [x] Select one lab and its responsible incharge: M201 VLSI Lab (M201), Ajit Ghadge.
-- [ ] Observe register-based issue/return activity and identify existing outstanding loans. Register format recorded; actual loan data collection deferred on 15 October 2026.
-- [ ] Create a stable list of returnable models and unit IDs where needed. Actual data collection deferred on 15 October 2026.
-- [x] Add CSV/Excel (`.csv` / `.xlsx`) item import with preview, validation, lab permissions, and transactional persistence for later intake.
-- [x] Agree essential/project presets, default durations and staff permissions: existing defaults accepted by the project owner on 15 October 2026.
-- [x] Confirm that loose consumables are outside the lending MVP and require no borrower or due date when introduced.
-- [x] Review the actual VOSS VAuth repository and agree its supported integration contract.
-- [x] Set up React/Vite frontend, TypeScript API, Neon and Drizzle schema/migrations.
-- [x] Establish lab IDs, permissions, audit events and separate development/test/production configuration.
+Completed or confirmed:
 
-Technical foundation verified on 12 October 2026. Pilot ownership, the observed
-register columns, the four-column item intake format, and acceptance of the
-existing presets/permissions were recorded on 15 October 2026 in
-`docs/phase-1-pilot-checklist.md`. Return date is confirmed as the actual date
-returned; the pilot register adds a separate due date for the agreed deadline.
-The register and outstanding-loan intake also include the borrower's roll
-number alongside their name; preserve roll numbers as text.
-Actual item rows, stable unit IDs where
-needed, outstanding loans, remaining workflow details, the pilot start date,
-and the incharge's VAuth identity and formal sign-off remain pending. A live
-VAuth demonstration additionally requires VInventory client registration by
-the VAuth administrator.
+- [x] Select M201 VLSI Lab, location 201 M-block VIT, and Ajit Ghadge as incharge/operator.
+- [x] Record register fields, including borrower roll number and separate due/actual return dates.
+- [x] Accept four-day Essential and fourteen-day Project defaults, permissions, and consumable exclusion.
+- [x] Implement React/Vite, Fastify, PostgreSQL/Neon access, Drizzle schema/migrations, session and permission foundations.
+- [x] Add CSV/Excel item import with preview, validation, duplicate rejection, transactional persistence and audit events.
+- [x] Review the VAuth contract and the user-supplied `integrating.md` guide, including hosted authentication for local products.
+- [x] Receive user-reported VInventory registration and credentials, with exact local/production callbacks. This is registration evidence, not a successful live login.
 
-Data collection is deferred, not an implementation blocker. The import workflow
-accepts the agreed four columns plus asset tags for individually tracked units.
-Imported quantities and units start in `awaiting_testing`; they do not establish
-verified available stock or complete the operational Phase 1 exit criteria.
-See `docs/inventory-import.md` for format, limits, and setup requirements.
+Next implementation sequence:
 
-**Deliverables:** Agreed workflow, initial item records, schema and project skeleton.
+1. [x] Align hosted VAuth with the registered localhost callback. Adapter, callback, examples, aliases, root `.env` loading, EdDSA/JWKS and verified-email checks are implemented and tested. Separate Neon `neondb` migrations, hosted owner sign-in, `/api/me` and repeat local-user preservation are verified. Existing client used without re-registration; production routing remains a deployment check.
+2. [ ] Add an explicit unassigned account state, reviewed schema/data migration, access-pending page, and server-side role allowlists. Require verified-email binding for local records; preserve stable subject IDs.
+3. [ ] Implement and document the one-time first-system-admin setup command. The project owner signs in with their own account and is explicitly promoted; then provision M201 and its policies through trusted setup tools.
+4. [ ] Add independent local role-testing fixtures and the guarded development identity switcher described in section 5. Never require shared credentials or another person's account to test permissions.
+5. [ ] Verify hosted-VAuth login from `http://localhost:5173`, callback handling, `/api/me`, repeat login without duplicate users, local logout, unassigned access denial and intended admin/incharge/staff boundaries. Test inventory preview/import with synthetic records in the development database.
 
-**Outcome:** The team has a small achievable scope with durable lab ownership and item identities.
+Deferred operational inputs (required before a live pilot):
 
-**Exit criteria:** Incharge accepts the workflow; VAuth login and server verification are demonstrated; no authentication protocol is assumed without repository review.
+- [ ] Collect actual item/model rows, quantities and stable unit IDs where applicable.
+- [ ] Collect and reconcile outstanding loans, including name, roll number, issued date, due date, purpose and verifier; preserve actual return dates where present.
+- [ ] Confirm approval, partial/damaged/late-return handling and remaining workflow decisions with the incharge.
+- [ ] Link Ajit Ghadge's real VAuth account, set the pilot date and obtain formal incharge sign-off.
+
+The import accepts Stock code, Item/model name, Tracking and Quantity, plus
+semicolon-separated Asset tags for individual units. It supports `.csv` and
+`.xlsx`, up to 2 MB/500 items/2,000 individual units, and does not import loans.
+Imported holdings begin in `awaiting_testing`, not verified available stock.
+See `docs/inventory-import.md` and `docs/phase-1-pilot-checklist.md`.
+
+**Technical readiness:** Hosted login works locally; unassigned identities have
+no operational access; the owner can administer and test the development lab;
+permission, session and import checks pass. Automated tests alone do not prove
+the live VAuth client works.
+
+**Operational exit:** Real item/loan records are reconciled, the incharge's
+access and workflow are verified, and the incharge accepts the pilot. Deferred
+data does not prevent Phase 2 development, but Phase 1 must not be marked fully
+complete until both technical readiness and operational exit are satisfied.
 
 ### Phase 2 — Returnable-equipment lending MVP
 
 **Goal:** Replace the borrowing register with reliable digital possession records.
 
-- [ ] Build staff checkout using an identified student, stable item reference, actual units/quantity and agreed due date.
+- [ ] Build staff checkout using a verified local borrower record with name and roll number, stable item reference, actual units/quantity and agreed due date.
+- [ ] Provide controlled condition/verification handling needed to use imported stock; do not issue `awaiting_testing` units or silently treat imported balances as available. Keep broader inventory reconciliation in Phase 5.
 - [ ] Suggest category defaults while allowing incharge overrides.
 - [ ] Capture project purpose where required and condition at issue.
 - [ ] Display active loans and borrower-specific history.
@@ -335,18 +398,25 @@ Add only after confirmed need:
 | Entity | Main information |
 |---|---|
 | Lab | Name, location, timezone, active status |
-| User and lab role | Student/staff identity and assigned permissions |
+| User and lab role | Stable VAuth identity, explicit unassigned/student/staff/system-admin state, lab membership and permissions |
+| Borrower profile (planned) | Roll number as text, verified-email matching and stable link to the local user; VAuth supplies no roll number |
 | Component model | Exact model, specifications, photo, searchable aliases |
 | Lab stock | Lab, model, storage location, unit of measure, policy, tracking method |
 | Physical unit | Unique ID, lab stock reference, condition/status |
 | Inventory movement | Receipt, consumption, issue, return, adjustment; quantity, staff, time, reason |
 | Request | Student, requested stock/quantity, purpose, dates, approval status |
 | Loan and loan line | Borrower, issued units/quantities, due date, outstanding quantity, policy snapshot |
-| Return record | Loan line, quantity/unit, condition, receiving staff/time |
+| Return record | Loan line, quantity/unit, condition, actual return date/time and receiving staff; separate from the due date |
 | Extension record | Previous/proposed due date, reason and approval |
 | Audit event | Actor, action, affected record and change history |
 
 Consumption movements do not require a student reference. Returnable loans do. Confirmed stock-changing operations must be atomic and consistent.
+
+This is the target conceptual model. The current schema still defaults users
+to `student` and has no dedicated borrower roll-number profile. Implement these
+changes through reviewed migrations, preserving existing user IDs, sessions and
+loan references. Review existing default-student records; do not assume they
+represent approved students or indiscriminately rewrite assigned roles.
 
 ## 10. Required validation scenarios
 
@@ -383,22 +453,28 @@ Current progress:
 - [x] Establish incharge control over lab-specific rules.
 - [x] Define complete lab inventory dashboard.
 - [x] Document the phased rollout and expected outcomes.
+- [x] Implement the technical foundation and CSV/Excel returnable-item import.
+- [x] Receive VAuth client registration details; hosted login not yet verified.
+- [ ] Align live authentication, unassigned onboarding and owner admin setup.
 - [ ] Validate assumptions with the pilot lab.
 - [ ] Implement and test the MVP.
 - [ ] Run the pilot before multi-lab expansion.
 
 ## 12. Decisions to confirm during Phase 1
 
-Confirm these with the pilot incharge before implementing dependent features:
+Confirmed: M201/Ajit Ghadge, hosted VAuth with local development callbacks,
+name plus roll number in borrower records, separate due/actual return dates,
+Essential/Project defaults, consumable exclusion, and deferred real-data intake.
 
-- Which lab and who can issue/receive equipment?
-- Existing student identity source and login approach.
-- Exact unit-versus-quantity classifications.
-- Default durations and outside-lab borrowing permission.
-- Whether students submit requests or staff use direct checkout initially.
-- Consumable recording method: each issue, batch issue or count reconciliation.
-- Reminder channel and escalation owner.
-- Hosting, backup responsibility and operating procedure.
+Remaining inputs and decisions:
+
+- Owner's exact verified account for first-admin setup and Ajit Ghadge's account for lab assignment; no identity is inferred from a display name.
+- Actual hosted client acceptance, callback/proxy/cookie behavior, and deployment environment loading.
+- Source and approval process for local borrower records and verified-email links; roll numbers alone are not identity proof.
+- Exact item/unit classifications, outstanding records and physical reconciliation, deferred until data is available.
+- Outside-lab borrowing permission, initial student-request versus direct-checkout flow, and partial/damaged/late-return handling.
+- Pilot date, reminder channel/escalation owner, hosting and backup responsibility.
+- Consumable recording method when Phase 5 begins: each issue, batch issue or count reconciliation.
 
 These decisions refine implementation; they do not change the agreed goal: establish trustworthy single-lab stock and borrowing records, then expand to a shared catalogue while preserving each lab's control.
 
@@ -409,18 +485,18 @@ These decisions refine implementation; they do not change the agreed goal: estab
 |---|---|---|
 | Language | TypeScript | Frontend, API, worker and shared contracts |
 | Frontend | React + Vite | Selected; browser UI and build tooling |
-| UI | shadcn/ui + Tailwind CSS | Selected components, customized for forms/tables/dialogs |
-| Authentication | VOSS VAuth: https://github.com/voss-labs/vauth | Selected identity provider; integration contract pending source review |
+| UI | Current React/CSS interface; shadcn/ui + Tailwind CSS planned | Import screen is implemented with plain CSS; component-system adoption remains future work |
+| Authentication | Hosted VOSS VAuth + current `openid-client` adapter | Local callback alignment, live owner login and repeat identity preservation verified; onboarding/admin setup follows |
 | Database | Neon PostgreSQL | Selected relational persistence |
 | Database access | Drizzle ORM | Recommended and adopted in this plan for typed SQL-like queries/schema definitions |
 | Schema migrations | Drizzle Kit | Reviewed, versioned SQL migrations committed with code |
-| Backend runtime | Node.js | Proposed default for the TypeScript API/worker |
-| API framework | Fastify | Proposed default; confirm with team before implementation |
-| Database driver | node-postgres (`pg`) with pooling | Proposed for Node backend, supporting interactive transactions; revisit if deployed to an edge runtime |
-| Input validation | Zod | Proposed for runtime validation and API contracts |
+| Backend runtime | Node.js | Implemented for API/worker foundation |
+| API framework | Fastify | Implemented |
+| Database driver | node-postgres (`pg`) with pooling | Implemented; supports interactive transactions; revisit only if moving to an edge runtime |
+| Input validation | Zod | Implemented for runtime validation and API contracts |
 | Routing / server state | React Router / TanStack Query | Proposed frontend utilities; add only where needed |
 | Reminders | Scheduled TypeScript worker + persistent PostgreSQL jobs/outbox | Proposed initial design; scheduler/notification provider selected during Phase 1 |
-| Testing | Vitest + API/database integration tests; Playwright for critical user flows | Proposed validation tools |
+| Testing | Vitest, React Testing Library and isolated PostgreSQL integration tests | Implemented; real-browser hosted login and repeat identity verified; logout and role-boundary acceptance follows |
 | Hosting / images | To be selected | Separate app/worker deployment; object storage for photos if introduced |
 
 No Next.js, separate microservices, Redis or message broker is required for the initial design. Choose compatible supported package releases at implementation time and pin them with a lockfile; this plan does not prescribe an unverified version.
@@ -433,9 +509,55 @@ Use reviewed migrations for shared/live environments. Test changes and data back
 
 ### Authentication and authorization
 
-The VAuth here is the VOSS repository, not the unrelated hosted service at v-auth.dev. Repository contents were not retrieved during planning, so no OAuth/OIDC, JWT, SDK or role feature is asserted.
+The user-supplied VAuth `integrating.md`, reviewed on 17 October 2026, confirms
+hosted OIDC authorization-code login with PKCE S256, verified college email,
+optional name, and product-owned roles. VAuth does not run on the owner's
+machine. Localhost refers to VInventory's development origin and callback.
 
-Before implementation, verify supported login flow, server-side credential/session validation, stable user identity, expiry/logout behavior and deployment requirements. Store its stable identity mapping to a local application user; keep lab membership and permissions in VInventory. Do not write directly into VAuth's internal tables or share database credentials unless an explicitly documented integration requires it.
+| Setting | Agreed target |
+|---|---|
+| Hosted issuer | `https://accounts.vosslabs.org/api/auth` |
+| Hosted discovery | `https://accounts.vosslabs.org/api/auth/.well-known/openid-configuration` |
+| Local product origin | `http://localhost:5173` |
+| Registered local callback | `http://localhost:5173/api/auth/oauth2/callback/voss` |
+| Production product origin | `https://vinventory.vosslabs.org` |
+| Registered production callback | `https://vinventory.vosslabs.org/api/auth/oauth2/callback/voss` |
+| Requested scopes | `openid profile email` |
+
+Use exact registered scheme, host, port and path, with no added trailing slash.
+Do not substitute `127.0.0.1` for the browser-facing `localhost` callback. The
+internal API proxy may still use `127.0.0.1:3000`; proxy `/api/auth/*` from the
+product origin to the API. The registration output's localhost discovery URL
+must be replaced by the hosted discovery URL. First-party status skips consent,
+not application authorization. Registration is reported complete. Credentials
+are stored only in the ignored local `.env`, never in this plan. Neon setup,
+token exchange, local identity/session persistence and repeat login are verified.
+
+**Adapter decision:** Retain the existing `openid-client`/Fastify adapter.
+Protocol/configuration alignment is implemented; onboarding/access work follows.
+The guide's Better Auth examples are a reference, not code already installed in
+VInventory. The adapter decision and acceptance coverage are recorded in
+`docs/authentication.md`; adopting Better Auth would require an explicit session/schema migration
+plan and is not silently included here. Its `BETTER_AUTH_*` options do not configure
+the existing adapter. Keep current product-session settings explicit; the guide's
+seven-day sliding sessions are not implemented by the existing twelve-hour default.
+
+Configuration now accepts `VOSS_CLIENT_ID`, `VOSS_CLIENT_SECRET` and hosted
+`VOSS_DISCOVERY_URL`, retains compatible `VAUTH_*` aliases and rejects conflicting
+values. Explicit discovery fetching is followed by an independent issuer check.
+The registered callback path replaces `/auth/callback`; examples and startup
+load the root `.env` from package commands. Vite keeps localhost:5173 fixed.
+Secrets remain server-side, never in `VITE_*`, browser bundles or
+tracked files. Use VInventory's own database, not VAuth's production database.
+
+Validate token signature, issuer, audience, expiry, state and nonce; require a
+verified email and a fallback display name. Keep `(provider, sub)` as the stable
+login key. Link approved local records only through verified email, never name
+or roll number, and refuse identity rebinding. Unmatched users get an explicit
+access-pending destination and no operational role. Role checks use allowlists.
+Product logout revokes the local session; remaining signed in at VAuth is normal
+SSO behavior. Detailed implementation gaps and acceptance steps are in
+`docs/authentication.md`.
 
 ### Application architecture
 
@@ -468,14 +590,19 @@ Keep one repository and one application database initially. Separate environment
 
 ## 14. Additional technical acceptance checks
 
-- [ ] VAuth integration verified against the actual VOSS source/docs.
+- [x] VAuth contract reviewed against source and user-supplied integration guide; live verification remains separate.
+- [x] Hosted VAuth works with the exact registered localhost callback and current client credentials.
+- [ ] Production callback routing and environment configuration verified before deployment.
+- [ ] Unmatched users remain unassigned; a typed roll number cannot claim another borrower's record.
+- [ ] First-admin setup selects only the intended authenticated owner, is repeat-safe and records an audit event.
+- [ ] Local identity switching requires explicit opt-in and cannot run or build enabled in production.
 - [ ] Unauthenticated and unauthorized API calls rejected.
 - [ ] Cross-lab access tested with different users.
 - [ ] Runtime inputs validated, including quantities, units and dates.
 - [ ] Simultaneous last-unit checkout permits only one successful loan.
 - [ ] Repeated checkout/return submission cannot duplicate stock movements.
 - [ ] Failed transactions leave no partially updated balances.
-- [ ] Migrations tested on a separate database before live deployment.
+- [x] Initial migration applied to the separate Neon development database; verified 23 tables and one migration record.
 - [ ] Reminder retries, duplicate jobs, closed loans and date changes tested.
 - [ ] CSV exports respect role/lab access and handle spreadsheet formula input safely.
 - [ ] Credentials absent from browser bundles and repository history.
@@ -492,12 +619,22 @@ Keep one repository and one application database initially. Separate environment
 - Added selected stack and clearly labeled proposed backend/worker choices.
 - Recorded pending VAuth verification rather than assuming unrelated authentication behavior.
 
+15–17 October 2026:
+
+- Confirmed M201 ownership, accepted lending presets, and register fields including roll number and separate due/actual return dates.
+- Deferred actual item/loan collection and implemented CSV/Excel item import for later use; unverified imports remain unavailable for lending.
+- Recorded supplied client registration as complete by user report, with configuration and hosted end-to-end verification still pending.
+- Corrected the distinction between hosted VAuth discovery and local product callbacks; documented exact registered URLs.
+- Added owner `system_admin` setup, explicit unassigned onboarding, verified-email record binding and isolated local role testing.
+- Separated implemented code, planned auth alignment, technical readiness and operational pilot sign-off. Updated technology status to match the current code.
+
 Technical references:
 
+- VAuth `integrating.md`, supplied by the project owner and reviewed on 17 October 2026; key requirements recorded in `docs/authentication.md`.
 - VOSS VAuth: https://github.com/voss-labs/vauth
 - Drizzle overview: https://orm.drizzle.team/docs/overview
 - Drizzle with Neon: https://orm.drizzle.team/docs/connect-neon
 - Drizzle transactions: https://orm.drizzle.team/docs/transactions
 - shadcn/ui with Vite: https://ui.shadcn.com/docs/installation/vite
 
-Immediate next action: Continue implementing the lending MVP while real data collection is deferred. Complete live VAuth registration/verification and remaining workflow decisions in parallel with development; populate item/loan records and obtain incharge sign-off before the live pilot.
+Immediate next action: Implement unassigned onboarding and verified-email identity linking, followed by the owner's first-system-admin setup. Hosted localhost login and repeat identity preservation are verified against Neon. Verify logout and local role boundaries before relying on them for the lending MVP. Continue development with isolated test data while actual inventory/loan collection remains deferred; reconcile real records and obtain incharge sign-off before the live pilot.

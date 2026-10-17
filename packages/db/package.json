@@ -14,8 +14,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "test": "vitest run --passWithNoTests",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:generate": "node --import ../../scripts/load-env.mjs ./node_modules/drizzle-kit/bin.cjs generate",
+    "db:migrate": "node --import ../../scripts/load-env.mjs ./node_modules/drizzle-kit/bin.cjs migrate"
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",

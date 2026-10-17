@@ -6,7 +6,14 @@ incharge before loading production-like data.
 
 Pilot details and acceptance of the existing presets and permission model were
 provided by the project owner on 15 October 2026. Formal incharge sign-off,
-inventory/loan reconciliation, and live VAuth verification remain pending.
+inventory/loan reconciliation, and full role-boundary verification remain pending.
+
+Updated 17 October 2026: the owner supplied successful VInventory client
+registration output and the VAuth integration guide. Hosted VAuth now serves
+the local product: callback/configuration alignment, separate Neon migrations,
+owner login, `/api/me` and repeat identity preservation are verified. Unassigned
+onboarding, first-admin setup, logout and full access-boundary testing remain. See
+[authentication plan](./authentication.md).
 
 **Deferred on 15 October 2026:** The project owner does not yet have the real
 item and loan data. Collection and reconciliation are postponed so development
@@ -25,6 +32,7 @@ workflow; see [inventory import](./inventory-import.md).
 | Responsible incharge VAuth account | _Required_ |
 | Pilot start date | _Required_ |
 | Staff who may operate checkout/return | Ajit Ghadge |
+| Intended first system administrator | Project owner; exact authenticated account to be selected during trusted setup |
 
 ## 2. Observe the current register
 
@@ -105,21 +113,35 @@ the actual VAuth account remains pending.
 |---|---|---:|---:|---:|---:|---:|---:|---|
 | Ajit Ghadge | _Required_ | Yes | Yes | Yes | Yes | Yes | Yes | Project owner accepted existing incharge permissions; formal sign-off pending |
 
-## 5. VAuth live demonstration
+## 5. Authentication and administration readiness
 
-- [ ] VInventory client registered by the VAuth administrator.
-- [ ] Development callback exactly matches `VAUTH_REDIRECT_URI`.
-- [ ] Test user can sign in through VAuth and reach `GET /api/me`.
-- [ ] The same identity maps to one local user on repeat login.
-- [ ] A user without lab membership receives `403` on the lab access probe.
+- [x] VInventory client registration reported complete; credentials and guide supplied by the owner.
+- [x] Use hosted discovery at `https://accounts.vosslabs.org/api/auth/.well-known/openid-configuration`; metadata fetched successfully.
+- [x] Implement and configure the exact registered local callback `http://localhost:5173/api/auth/oauth2/callback/voss`.
+- [x] Align supplied `VOSS_*` settings with the current adapter, root `.env` loading and examples; credentials remain server-side.
+- [x] Configure the selected separate Neon `neondb` development database and apply migrations; verified 23 tables and one migration record.
+- [ ] Replace automatic `student` assignment with explicit unassigned onboarding and role allowlists.
+- [x] Owner can sign in through hosted VAuth from local VInventory and reach `GET /api/me`.
+- [ ] Bootstrap only the owner's selected authenticated identity as `system_admin`, with an audited, repeat-safe command.
+- [ ] Provision development M201 and accepted policies for owner-led testing; keep synthetic records separate from real pilot data.
+- [x] The same identity maps to one local user on repeat login.
+- [ ] Unassigned users have no operational access; ordinary users without the required lab permission receive `403` (system admins deliberately have global access).
 - [ ] Authorized staff receives access only for the assigned pilot lab.
-- [ ] Logout revokes the local session.
+- [ ] Borrower links use verified email and stable subject; a typed roll number cannot claim a record.
+- [x] Header sign-out revokes the local session and returns to the public landing page.
+- [ ] Independent role tests use isolated fixtures; any local identity switcher requires explicit opt-in and is rejected in production runtime/builds.
+- [ ] Verify production routing for `https://vinventory.vosslabs.org/api/auth/oauth2/callback/voss` before deployment.
 
 ## 6. Sign-off
 
 Phase 1's operational exit is met only when the incharge confirms the workflow,
 the stable item list and outstanding loans are reconciled, and the real VAuth
 demonstration above passes.
+
+Technical readiness can enable Phase 2 development while collection is deferred.
+It does not complete this operational sign-off. First-admin setup/testing can be
+performed by the owner without requiring Ajit Ghadge to participate; his actual
+account and acceptance are still needed before the lab starts using the product.
 
 | Signatory | Name | Date | Decision/notes |
 |---|---|---|---|

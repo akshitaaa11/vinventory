@@ -16,3 +16,4 @@ coverage/
 .vauth-reference/
 __pycache__/
 *.py[cod]
+design-system/

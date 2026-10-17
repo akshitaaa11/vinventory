@@ -1,151 +1,47 @@
-import { useEffect, useRef, useState } from "react";
-import type { ImportLab, ImportPolicy, ImportPreview, ImportResult, InventoryImportFile } from "@vinventory/contracts";
+import { useEffect, useState } from "react";
+import { ApiError, request, type CurrentUser } from "./api";
+import { Icon } from "./icons";
+import { Landing } from "./Landing";
+import { LabsWorkspace } from "./LabsWorkspace";
+import { SignIn } from "./SignIn";
 
-async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(path, { ...options, credentials: "same-origin" });
-  if (response.status === 401) throw new Error("Sign in with VAuth to import inventory.");
-  if (response.status === 403) throw new Error("You do not have permission to manage stock in this lab.");
-  const body = await response.json().catch(() => null) as (T & { message?: string }) | null;
-  if (!body && response.status >= 500) throw new Error("The API is unavailable. Start the API and refresh this page.");
-  if (!response.ok) throw new Error(body?.message ?? "The request failed. Please try again.");
-  if (!body) throw new Error("The API is unavailable. Start the API and try again.");
-  return body;
-}
-
-async function readFile(file: File): Promise<InventoryImportFile> {
-  if (!/\.(csv|xlsx)$/i.test(file.name)) throw new Error("Choose CSV or Excel (.xlsx). Save older .xls files as .xlsx first.");
-  if (file.size > 2 * 1024 * 1024) throw new Error("Choose a file up to 2 MB.");
-  const content = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Could not read the file."));
-    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
-    reader.readAsDataURL(file);
-  });
-  return { filename: file.name, content };
+function Brand() {
+  return <a className="brand" href="/" aria-label="VInventory home"><span className="brand-mark">V<span /></span><span>VInventory<span className="brand-dot">.</span></span></a>;
 }
 
 export function App() {
-  const [labs, setLabs] = useState<ImportLab[]>([]);
-  const [labId, setLabId] = useState("");
-  const [policies, setPolicies] = useState<ImportPolicy[]>([]);
-  const [policyId, setPolicyId] = useState("");
-  const [storage, setStorage] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [upload, setUpload] = useState<InventoryImportFile | null>(null);
-  const [preview, setPreview] = useState<ImportPreview | null>(null);
-  const [confirmed, setConfirmed] = useState(false);
-  const [result, setResult] = useState<ImportResult | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [loadingPolicies, setLoadingPolicies] = useState(false);
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [checking, setChecking] = useState(true);
   const [error, setError] = useState("");
-  const [setupError, setSetupError] = useState("");
-  const fileInput = useRef<HTMLInputElement>(null);
-
+  const [retry, setRetry] = useState(0);
+  const [signingOut, setSigningOut] = useState(false);
+  const [dark, setDark] = useState(() => {
+    try { const theme=localStorage.getItem("vinventory-theme"); return theme ? theme==="dark" : (window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false); } catch { return false; }
+  });
+  useEffect(() => { document.documentElement.classList.toggle("dark", dark); try { localStorage.setItem("vinventory-theme", dark?"dark":"light"); } catch { /* Theme still works without storage. */ } }, [dark]);
   useEffect(() => {
-    const abort = new AbortController();
-    api<{ labs: ImportLab[] }>("/api/import-labs", { signal: abort.signal })
-      .then(({ labs: available }) => {
-        setLabs(available); setLabId(available[0]?.id ?? "");
-        if (!available.length) setSetupError("No labs are assigned to you with stock-management access. Ask the administrator to configure M201 and your lab membership.");
-      })
-      .catch((reason: Error) => { if (!abort.signal.aborted) setSetupError(reason.message); })
-      .finally(() => { if (!abort.signal.aborted) setLoading(false); });
-    return () => abort.abort();
-  }, []);
-
-  useEffect(() => {
-    setPreview(null); setUpload(null); setConfirmed(false); setResult(null);
-    setPolicies([]); setPolicyId("");
-    setStorage(labs.find((lab) => lab.id === labId)?.location ?? "");
-    if (!labId) return;
-    const abort = new AbortController();
-    setLoadingPolicies(true); setError("");
-    api<{ policies: ImportPolicy[] }>(`/api/labs/${labId}/import-policies`, { signal: abort.signal })
-      .then(({ policies: available }) => setPolicies(available))
-      .catch((reason: Error) => { if (!abort.signal.aborted) setError(reason.message); })
-      .finally(() => { if (!abort.signal.aborted) setLoadingPolicies(false); });
-    return () => abort.abort();
-  }, [labId, labs]);
-
-  async function previewFile() {
-    if (!file || !labId) return;
-    setBusy(true); setError(""); setPreview(null); setUpload(null); setConfirmed(false); setResult(null);
-    try {
-      const data = await readFile(file);
-      const rows = await api<ImportPreview>(`/api/labs/${labId}/inventory/import/preview`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
-      });
-      setUpload(data); setPreview(rows);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not preview the file."); }
-    finally { setBusy(false); }
+    let active = true;
+    setChecking(true); setError("");
+    request<{ user: CurrentUser }>("/api/me").then(body => { if (active) setUser(body.user); }).catch((reason: unknown) => {
+      if (!active) return;
+      setUser(null);
+      if (!(reason instanceof ApiError && reason.status === 401)) setError(reason instanceof Error ? reason.message : "Could not check your session.");
+    }).finally(() => { if (active) setChecking(false); });
+    return () => { active = false; };
+  }, [retry]);
+  async function signOut() {
+    setSigningOut(true); setError("");
+    try { await request<void>("/auth/logout", { method: "POST" }); window.history.replaceState(null,"","/"); setUser(null); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not sign out."); }
+    finally { setSigningOut(false); }
   }
-
-  async function importFile() {
-    if (!upload || !confirmed) return;
-    setBusy(true); setError("");
-    try {
-      const saved = await api<ImportResult>(`/api/labs/${labId}/inventory/import`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...upload, policyId, storageLocation: storage, confirmed }),
-      });
-      setResult(saved); setPreview(null); setUpload(null); setFile(null); setConfirmed(false);
-      if (fileInput.current) fileInput.current.value = "";
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not import the file.");
-      setPreview(null); setUpload(null); setConfirmed(false);
-    } finally { setBusy(false); }
-  }
-
-  return (
-    <main className="shell">
-      <header className="masthead"><p className="eyebrow">VInventory / M201 pilot</p><a href="/auth/login">Sign in with VAuth</a></header>
-      <h1>Bring your inventory<br />into one place.</h1>
-      <p className="intro">Add returnable equipment from a CSV or Excel file whenever your lab’s records are ready.</p>
-      <div className="notice">Pilot data collection is deferred. You can prepare the template now and import it later.</div>
-
-      <section className="card" aria-labelledby="format-title">
-        <div className="section-heading"><h2 id="format-title">1. Prepare your file</h2><a className="button secondary" href="/inventory-template.csv" download>Download CSV template</a></div>
-        <p>Use these columns in the first row. CSV and Excel <strong>.xlsx</strong> are supported, up to 2 MB and 500 items. Use one populated worksheet, with plain values.</p>
-        <div className="column-list"><span>Stock code</span><span>Item/model name</span><span>Tracking</span><span>Quantity</span><span>Asset tags <small>if individual</small></span></div>
-        <p className="muted">Tracking must be <code>individual</code> or <code>quantity</code>. For individual items, separate tags with semicolons and provide one per unit. Keep stock codes and tags as text to preserve leading zeros. Quantities must be whole numbers.</p>
-      </section>
-
-      <section className="card" aria-labelledby="upload-title">
-        <h2 id="upload-title">2. Choose a lab and preview</h2>
-        {loading && <p role="status">Loading your labs…</p>}
-        {setupError && <p className="notice" role="status">{setupError}</p>}
-        <fieldset disabled={busy || loading || !labs.length}>
-          <div className="form-grid">
-            <label>Lab<select value={labId} onChange={(event) => setLabId(event.target.value)}><option value="">Select a lab</option>{labs.map((lab) => <option key={lab.id} value={lab.id}>{lab.code} — {lab.name}</option>)}</select></label>
-            <label>Inventory file<input ref={fileInput} type="file" accept=".csv,.xlsx" onChange={(event) => { setFile(event.target.files?.[0] ?? null); setPreview(null); setUpload(null); setConfirmed(false); setResult(null); setError(""); }} /></label>
-          </div>
-          <button type="button" onClick={() => void previewFile()} disabled={!file || !labId || busy}>Preview file</button>
-        </fieldset>
-        {busy && <p role="status">Processing your file…</p>}
-        {error && <p className="error" role="alert">{error}</p>}
-        {result && <p className="success" role="status">Imported {result.imported} item records and {result.units} units. They are awaiting physical verification and testing before becoming available for lending.</p>}
-      </section>
-
-      {preview && <section className="card" aria-labelledby="review-title">
-        <h2 id="review-title">3. Review and import</h2>
-        <p>{preview.rows.length} item records in <strong>{upload?.filename}</strong>. Existing stock will not be overwritten.</p>
-        {!!preview.issues.length && <div className="error" role="alert"><strong>Fix {preview.issues.length} errors and preview the corrected file.</strong><ul>{preview.issues.map((issue, index) => <li key={index}>{issue.row ? `Row ${issue.row} · ` : ""}{issue.field}: {issue.message}</li>)}</ul></div>}
-        <div className="table-scroll" tabIndex={0} role="region" aria-label="Inventory preview"><table>
-          <thead><tr><th>Row</th><th>Stock code</th><th>Item/model name</th><th>Tracking</th><th>Quantity</th><th>Asset tags</th></tr></thead>
-          <tbody>{preview.rows.map((row) => <tr key={row.row}><td>{row.row}</td><td>{row.stockCode}</td><td>{row.name}</td><td>{row.tracking}</td><td>{row.quantity}</td><td>{row.assetTags.join("; ") || "—"}</td></tr>)}</tbody>
-        </table></div>
-        <fieldset disabled={busy || !!preview.issues.length}>
-          <div className="form-grid">
-            <label>Borrowing policy for this batch<select value={policyId} disabled={loadingPolicies} onChange={(event) => { setPolicyId(event.target.value); setConfirmed(false); }}><option value="">Choose a policy</option>{policies.map((policy) => <option key={policy.id} value={policy.id}>{policy.name} ({policy.defaultLoanDays} days)</option>)}</select></label>
-            <label>Storage location<input value={storage} maxLength={200} onChange={(event) => { setStorage(event.target.value); setConfirmed(false); }} placeholder="e.g. M201, cabinet A" /></label>
-          </div>
-          {!loadingPolicies && !policies.length && <p className="notice">This lab needs an active returnable-item borrowing policy before import. Ask the incharge or administrator to configure one.</p>}
-          <label className="confirmation"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />I have reviewed these records. Imported stock will await physical verification and testing.</label>
-          <button type="button" onClick={() => void importFile()} disabled={!confirmed || !policyId || !storage.trim() || busy || !!preview.issues.length}>Import {preview.rows.length} items</button>
-        </fieldset>
-      </section>}
-      <footer>Returnable-item imports only. Borrowing records and due dates are managed separately.</footer>
-    </main>
-  );
+  const isWorkspace = window.location.pathname === "/labs" || window.location.pathname.startsWith("/labs/");
+  const providerError = new URLSearchParams(window.location.search).get("authError") === "provider_unavailable";
+  return <>
+    <a className="skip-link" href="#main-content">Skip to content</a>
+    <header className="site-header"><div className="container header-inner"><Brand/><nav aria-label="Main navigation">{isWorkspace ? <a className="nav-active" href="/labs">Labs</a> : <><a href="#how-it-works">How it works</a><a href="#who-its-for">Who it’s for</a></>}</nav><div className="header-actions"><button className="icon-button" aria-label={`Switch to ${dark?"light":"dark"} theme`} onClick={()=>setDark(!dark)}><Icon name={dark?"sun":"moon"}/></button>{checking ? <span className="session-check" role="status">Checking session…</span> : user ? <><a className="account-chip" href="/labs" aria-label={`Open labs, signed in as ${user.displayName}`} title={user.displayName}><span className="avatar">{user.displayName.split(" ").map(p=>p[0]).slice(0,2).join("")}</span><span>{user.displayName}</span></a><button className="icon-button" aria-label="Sign out" title="Sign out" disabled={signingOut} onClick={()=>void signOut()}><Icon name="logout"/></button></> : <SignIn/>}</div></div></header>
+    {(error || providerError) && <div className="container"><div className="service-alert" role="alert"><Icon name="shield"/><span>{error || "VAuth is temporarily unavailable. Please try signing in again in a moment."}</span>{error && <button className="secondary" onClick={()=>setRetry(n=>n+1)}>Retry connection</button>}</div></div>}
+    {isWorkspace ? checking ? <main id="main-content" className="container workspace empty-state" role="status"><h1>Opening your workspace…</h1></main> : user ? <LabsWorkspace user={user} onExpired={()=>setUser(null)}/> : <main id="main-content" className="container workspace empty-state"><Icon name="shield"/><h1>Your labs are one sign-in away.</h1><p>Use your verified college account to explore participating labs.</p><SignIn/><a className="text-link" href="/">Back to VInventory</a></main> : <Landing user={user}/>}
+    <footer className="site-footer"><div className="container footer-inner"><Brand/><span>A VOSS Labs product.</span><span>Built for the work that starts in a lab.</span></div></footer>
+  </>;
 }

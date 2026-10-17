@@ -4,10 +4,12 @@ import { drizzle } from "drizzle-orm/pglite";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Database } from "@vinventory/db";
 import { DrizzleInventoryRepository, type CommitImport } from "./repository.js";
+import { DrizzleLabsRepository } from "../labs/repository.js";
 
 // A fresh, in-memory PostgreSQL engine; never uses DATABASE_URL or real pilot data.
 const client = new PGlite();
 const repository = new DrizzleInventoryRepository(drizzle(client) as unknown as Database);
+const directory = new DrizzleLabsRepository(drizzle(client) as unknown as Database);
 const actorUserId = "20959a43-4fac-4b75-8a9d-1325313488c6";
 const labId = "b6d97d61-f99c-4d6a-8f05-80797861710d";
 const otherLabId = "03e5dcba-ea72-449a-9a85-36517f15d7a4";
@@ -33,6 +35,22 @@ beforeEach(async () => {
 afterAll(async () => { await client.close(); });
 
 describe("transactional inventory imports", () => {
+  it("lists all active labs for discovery and keeps management access scoped to membership", async () => {
+    const staff = { id: actorUserId, displayName: "Staff", email: null, accountType: "staff" as const };
+    const staffLabs = await directory.listActiveLabs(staff);
+    expect(staffLabs).toEqual([
+      { id: labId, code: "M201", name: "Test lab", location: null, canManageStock: true },
+      { id: otherLabId, code: "OTHER", name: "Other lab", location: null, canManageStock: false },
+    ]);
+    await client.query("UPDATE lab_memberships SET is_active=false WHERE user_id=$1", [actorUserId]);
+    const studentLabs = await directory.listActiveLabs({ ...staff, accountType: "student" });
+    expect(studentLabs).toHaveLength(2);
+    expect(studentLabs.every(lab=>!lab.canManageStock)).toBe(true);
+    expect((await directory.listActiveLabs({ ...staff, accountType: "system_admin" })).every(lab=>lab.canManageStock)).toBe(true);
+    await client.query("UPDATE labs SET is_active=false WHERE id=$1", [otherLabId]);
+    expect(await directory.listActiveLabs(staff)).toHaveLength(1);
+  });
+
   it("persists models, stock, unverified quantities/units, movements and audit events together", async () => {
     expect(await repository.commit(input)).toEqual({ imported: 2, units: 7, status: "awaiting_testing" });
     const balances = await client.query("SELECT available_quantity,awaiting_testing_quantity FROM quantity_balances");
