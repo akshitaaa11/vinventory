@@ -1,0 +1,19 @@
+{
+  "name": "vinventory",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "pnpm --recursive --if-present run build",
+    "dev": "pnpm --parallel --filter @vinventory/api --filter @vinventory/web --filter @vinventory/worker run dev",
+    "test": "pnpm --recursive --if-present run test",
+    "typecheck": "pnpm --recursive --if-present run typecheck",
+    "verify": "pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}
