@@ -1,9 +1,69 @@
-/* Semantic values and radii from the supplied design-system/design-tokens.css.
+/* VOSS UI tokens from design-system/VOSS.org_design.md (sections 3–5 and 9).
  * Geist fonts are self-hosted; SIL Open Font Licenses are in public/fonts. */
 @font-face{font-family:Geist;src:url('/fonts/geist-regular.ttf') format('truetype');font-style:normal;font-weight:400;font-display:swap}
 @font-face{font-family:Geist;src:url('/fonts/geist-medium.ttf') format('truetype');font-style:normal;font-weight:500;font-display:swap}
 @font-face{font-family:Geist;src:url('/fonts/geist-semibold.ttf') format('truetype');font-style:normal;font-weight:600;font-display:swap}
 @font-face{font-family:Geist;src:url('/fonts/geist-bold.ttf') format('truetype');font-style:normal;font-weight:700;font-display:swap}
 @font-face{font-family:'Geist Mono';src:url('/fonts/geist-mono-regular.ttf') format('truetype');font-style:normal;font-weight:400;font-display:swap}
-:root{color-scheme:light;--font-sans:Geist,ui-sans-serif,system-ui,sans-serif;--font-mono:'Geist Mono',ui-monospace,monospace;--background:oklch(0.98 0.004 260);--foreground:oklch(0.16 0.02 260);--card:oklch(1 0 0);--primary:oklch(0.22 0.03 260);--primary-foreground:oklch(0.985 0 0);--secondary:oklch(0.96 0.006 260);--muted:oklch(0.955 0.008 260);--muted-foreground:oklch(0.5 0.02 260);--blue:oklch(0.52 0.2 258);--blue-foreground:oklch(0.99 0 0);--surface:oklch(0.97 0.005 260);--border:oklch(0.91 0.008 260);--input:oklch(0.91 0.008 260);--ring:oklch(0.52 0.2 258);--success:oklch(0.5 0.12 155);--attention:oklch(0.5 0.135 52);--destructive:oklch(0.55 0.22 25);--radius:0.2rem}
-:root.dark{color-scheme:dark;--background:oklch(0.14 0.01 260);--foreground:oklch(0.96 0 0);--card:oklch(0.19 0.015 260);--primary:oklch(0.92 0 0);--primary-foreground:oklch(0.19 0.015 260);--secondary:oklch(0.25 0.015 260);--muted:oklch(0.25 0.015 260);--muted-foreground:oklch(0.68 0.01 260);--blue:oklch(0.6 0.16 258);--surface:oklch(0.22 0.012 260);--border:oklch(1 0 0 / 10%);--input:oklch(1 0 0 / 15%);--ring:oklch(0.6 0.16 258);--success:oklch(0.65 0.14 155);--attention:oklch(0.72 0.15 55);--destructive:oklch(0.65 0.2 25)}
+
+:root {
+  color-scheme: light;
+  --font-sans: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+  --bg: #FAFAF7;
+  --bg-elevated: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F5F4EF;
+  --border: #E6E4DD;
+  --border-hover: #C9C5BB;
+  --text: #0A0A0A;
+  --text-dim: #525252;
+  --text-muted: #A8A29E;
+  --accent: #0A0A0A;
+  --accent-light: #262626;
+  --brand: #C4421D;
+  --brand-light: #E0541E;
+  --brand-pure: #FB7A3C;
+  --hover-bg: rgba(0,0,0,.035);
+  --code-bg: #F5F4EF;
+  --status-success: #166534;
+  --status-warning: #854D0E;
+  --status-danger: #B91C1C;
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 8px;
+  /* Existing application components share the VOSS source tokens. */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--bg-card);
+  --primary: var(--accent);
+  --primary-foreground: var(--bg);
+  --muted: var(--bg-card-hover);
+  --muted-foreground: var(--text-dim);
+  --surface: var(--code-bg);
+  --input: var(--text-dim);
+  --ring: var(--brand);
+  --attention: var(--status-warning);
+  --destructive: var(--status-danger);
+}
+:root.dark, :root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0A0A0A;
+  --bg-elevated: #111111;
+  --bg-card: #111111;
+  --bg-card-hover: #161616;
+  --border: #262626;
+  --border-hover: #404040;
+  --text: #FAFAFA;
+  --text-dim: #A3A3A3;
+  --text-muted: #525252;
+  --accent: #FAFAFA;
+  --accent-light: #FFFFFF;
+  --brand: #FB7A3C;
+  --brand-light: #FDA774;
+  --hover-bg: rgba(255,255,255,.05);
+  --code-bg: #161616;
+  --status-success: #86EFAC;
+  --status-warning: #FDE047;
+  --status-danger: #FCA5A5;
+}

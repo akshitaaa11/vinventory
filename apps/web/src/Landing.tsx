@@ -8,7 +8,7 @@ export function Landing({ user }: { user: CurrentUser | null }) {
     <section className="hero container" aria-labelledby="hero-title">
       <div className="hero-copy">
         <p className="eyebrow"><span className="tiny-square" /> THE CAMPUS LAB WORKSPACE</p>
-        <h1 id="hero-title">Less searching. <br /><span>More making.</span></h1>
+        <h1 id="hero-title">Less searching. <br /><span>More making<em>.</em></span></h1>
         <p className="hero-description">Good ideas start in the lab. VInventory brings lab equipment, inventory, and the people who use it into one shared workspace.</p>
         <div className="hero-actions">{cta}<a className="text-link" href="#how-it-works">See how it works <span aria-hidden="true">↘</span></a></div>
         <p className="hero-note"><Icon name="shield" />Your college identity. Your lab’s permissions.</p>
@@ -22,18 +22,18 @@ export function Landing({ user }: { user: CurrentUser | null }) {
     </section>
     <div className="principles"><div className="container">{([["labs","Built around your labs"],["users","For students & lab teams"],["shield","Powered by VOSS identity"]] as [IconName,string][]).map(([icon,text])=><span key={text}><Icon name={icon}/>{text}</span>)}</div></div>
     <section id="how-it-works" className="section container" aria-labelledby="workflow-title">
-      <div className="section-intro"><p className="eyebrow">FROM SHELF TO WORKBENCH</p><h2 id="workflow-title">A clearer picture of your lab.</h2><p>A place for every lab, a record for every item, and a shared understanding of what happens next.</p></div>
+      <div className="section-intro"><p className="eyebrow">01 / FROM SHELF TO WORKBENCH</p><h2 id="workflow-title">A clearer picture of your lab.</h2><p>A place for every lab, a record for every item, and a shared understanding of what happens next.</p></div>
       <div className="feature-grid">
         <article><span className="feature-number mono">01 / DISCOVER</span><Icon name="labs"/><h3>Start with the right lab.</h3><p>Explore participating labs in one directory. Find their location and open the workspace that matters to you.</p></article>
         <article><span className="feature-number mono">02 / ORGANIZE</span><Icon name="chip"/><h3>Give equipment a home.</h3><p>Lab teams bring their item records together, with clear ownership and staff-controlled inventory imports.</p></article>
         <article><span className="feature-number mono">03 / ACCOUNTABILITY</span><Icon name="book"/><h3>Built for the full journey.</h3><p>Inventory is the starting point. Borrowing, due dates, and confirmed returns are the next steps in the lending workflow.</p></article>
       </div>
     </section>
-    <section id="who-its-for" className="audience-section"><div className="container audience-layout"><div><p className="eyebrow">DIFFERENT ROLES. SHARED PURPOSE.</p><h2>For the people <br />behind every project.</h2><p>From the first experiment to the final prototype, everyone needs a lab they can count on.</p></div><div className="role-list">
+    <section id="who-its-for" className="audience-section"><div className="container audience-layout"><div><p className="eyebrow">02 / DIFFERENT ROLES. SHARED PURPOSE.</p><h2>For the people <br />behind every project.</h2><p>From the first experiment to the final prototype, everyone needs a lab they can count on.</p></div><div className="role-list">
       <article><span className="role-icon"><Icon name="users"/></span><div><h3>Students & project teams</h3><p>Discover labs and find where your next project begins.</p></div><span className="mono">01</span></article>
       <article><span className="role-icon"><Icon name="chip"/></span><div><h3>Lab incharges & staff</h3><p>Organize equipment records and manage stock within your assigned labs.</p></div><span className="mono">02</span></article>
       <article><span className="role-icon"><Icon name="shield"/></span><div><h3>Administrators</h3><p>Bring labs and their teams into a consistent, accountable workspace.</p></div><span className="mono">03</span></article>
     </div></div></section>
-    <section className="container final-cta"><div><p className="eyebrow">MAKE ROOM FOR WHAT’S NEXT</p><h2>Your next idea starts here.</h2><p>Sign in with your college account and explore VInventory.</p></div>{cta}</section>
+    <section className="container final-cta"><div><p className="eyebrow">03 / MAKE ROOM FOR WHAT’S NEXT</p><h2>Your next idea starts here.</h2><p>Sign in with your college account and explore VInventory.</p></div>{cta}</section>
   </main>;
 }

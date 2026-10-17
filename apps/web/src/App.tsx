@@ -6,7 +6,7 @@ import { LabsWorkspace } from "./LabsWorkspace";
 import { SignIn } from "./SignIn";
 
 function Brand() {
-  return <a className="brand" href="/" aria-label="VInventory home"><span className="brand-mark">V<span /></span><span>VInventory<span className="brand-dot">.</span></span></a>;
+  return <a className="brand" href="/" aria-label="VInventory home"><span>VInventory<span className="brand-dot" aria-hidden="true" /></span></a>;
 }
 
 export function App() {
@@ -18,7 +18,7 @@ export function App() {
   const [dark, setDark] = useState(() => {
     try { const theme=localStorage.getItem("vinventory-theme"); return theme ? theme==="dark" : (window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false); } catch { return false; }
   });
-  useEffect(() => { document.documentElement.classList.toggle("dark", dark); try { localStorage.setItem("vinventory-theme", dark?"dark":"light"); } catch { /* Theme still works without storage. */ } }, [dark]);
+  useEffect(() => { document.documentElement.classList.toggle("dark", dark); if (dark) document.documentElement.dataset.theme = "dark"; else delete document.documentElement.dataset.theme; try { localStorage.setItem("vinventory-theme", dark?"dark":"light"); } catch { /* Theme still works without storage. */ } }, [dark]);
   useEffect(() => {
     let active = true;
     setChecking(true); setError("");
@@ -39,7 +39,7 @@ export function App() {
   const providerError = new URLSearchParams(window.location.search).get("authError") === "provider_unavailable";
   return <>
     <a className="skip-link" href="#main-content">Skip to content</a>
-    <header className="site-header"><div className="container header-inner"><Brand/><nav aria-label="Main navigation">{isWorkspace ? <a className="nav-active" href="/labs">Labs</a> : <><a href="#how-it-works">How it works</a><a href="#who-its-for">Who it’s for</a></>}</nav><div className="header-actions"><button className="icon-button" aria-label={`Switch to ${dark?"light":"dark"} theme`} onClick={()=>setDark(!dark)}><Icon name={dark?"sun":"moon"}/></button>{checking ? <span className="session-check" role="status">Checking session…</span> : user ? <><a className="account-chip" href="/labs" aria-label={`Open labs, signed in as ${user.displayName}`} title={user.displayName}><span className="avatar">{user.displayName.split(" ").map(p=>p[0]).slice(0,2).join("")}</span><span>{user.displayName}</span></a><button className="icon-button" aria-label="Sign out" title="Sign out" disabled={signingOut} onClick={()=>void signOut()}><Icon name="logout"/></button></> : <SignIn/>}</div></div></header>
+    <header className="site-header"><div className="container header-inner"><Brand/><nav aria-label="Main navigation">{isWorkspace ? <a className="nav-active" aria-current="page" href="/labs">Labs</a> : <><a href="#how-it-works">How it works</a><a href="#who-its-for">Who it’s for</a></>}</nav><div className="header-actions"><button className="icon-button" aria-label={`Switch to ${dark?"light":"dark"} theme`} onClick={()=>setDark(!dark)}><Icon name={dark?"sun":"moon"}/></button>{checking ? <span className="session-check" role="status">Checking session…</span> : user ? <><a className="account-chip" href="/labs" aria-label={`Open labs, signed in as ${user.displayName}`} title={user.displayName}><span className="avatar">{user.displayName.split(" ").map(p=>p[0]).slice(0,2).join("")}</span><span>{user.displayName}</span></a><button className="icon-button" aria-label="Sign out" title="Sign out" disabled={signingOut} onClick={()=>void signOut()}><Icon name="logout"/></button></> : <SignIn/>}</div></div></header>
     {(error || providerError) && <div className="container"><div className="service-alert" role="alert"><Icon name="shield"/><span>{error || "VAuth is temporarily unavailable. Please try signing in again in a moment."}</span>{error && <button className="secondary" onClick={()=>setRetry(n=>n+1)}>Retry connection</button>}</div></div>}
     {isWorkspace ? checking ? <main id="main-content" className="container workspace empty-state" role="status"><h1>Opening your workspace…</h1></main> : user ? <LabsWorkspace user={user} onExpired={()=>setUser(null)}/> : <main id="main-content" className="container workspace empty-state"><Icon name="shield"/><h1>Your labs are one sign-in away.</h1><p>Use your verified college account to explore participating labs.</p><SignIn/><a className="text-link" href="/">Back to VInventory</a></main> : <Landing user={user}/>}
     <footer className="site-footer"><div className="container footer-inner"><Brand/><span>A VOSS Labs product.</span><span>Built for the work that starts in a lab.</span></div></footer>
