@@ -1,4 +1,5 @@
 import { buildApp } from "./app.js";
+import { DrizzleDevAuthRepository } from "./auth/dev-repository.js";
 import { DrizzleAuthRepository } from "./auth/repository.js";
 import { VAuthOidcClient } from "./auth/oidc.js";
 import { UnavailableOidcClient } from "./auth/unavailable-oidc.js";
@@ -22,6 +23,7 @@ const app = await buildApp({
     webOrigin: config.webOrigin,
     callbackUrl: config.vAuth.redirectUri,
   },
+  ...(config.devAuth ? { devAuth: { devRepository: new DrizzleDevAuthRepository(database.db) } } : {}),
 });
 
 app.addHook("onClose", async () => database.close());
