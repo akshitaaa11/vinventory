@@ -132,7 +132,7 @@ async function setup(): Promise<void> {
   await startContainer();
   migrate();
   seed();
-  console.log("\nDone. Run `pnpm dev`, open http://localhost:5173 and pick a persona from the DEV menu in the header.");
+  console.log("\nDone. Run `pnpm dev`, open http://localhost:5173 and choose someone from Development sign-in in the header.");
 }
 
 const subcommand = process.argv[2];
